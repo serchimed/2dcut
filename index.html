@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2D Cutting Optimizer</title>
+  <meta name="description" content="2D cutting stock optimization algorithm" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    header {
+      border-bottom: 2px solid #333;
+      padding-bottom: 20px;
+      margin-bottom: 40px;
+    }
+
+    h1 {
+      font-size: 32px;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .subtitle {
+      color: #888;
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+
+    .section {
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .section h2 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+    }
+
+    input {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #e0e0e0;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #555;
+    }
+
+    button {
+      background: #fff;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background: #e0e0e0;
+    }
+
+    button:disabled {
+      background: #333;
+      color: #666;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      background: #333;
+      color: #e0e0e0;
+    }
+
+    button.secondary:hover {
+      background: #444;
+    }
+
+    button.remove {
+      background: #c00;
+      color: #fff;
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+
+    button.remove:hover {
+      background: #a00;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+    }
+
+    .parts-table {
+      margin-top: 16px;
+    }
+
+    .parts-header {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1.5fr 60px;
+      gap: 8px;
+      padding: 8px;
+      border-bottom: 1px solid #333;
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+    }
+
+    #parts-rows {
+      list-style: none;
+    }
+
+    #parts-rows li {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1.5fr 60px;
+      gap: 8px;
+      padding: 8px;
+      background: #2a2a2a;
+      border-radius: 4px;
+      margin-top: 8px;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .stat-box {
+      background: #2a2a2a;
+      padding: 16px;
+      border-radius: 4px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .canvas-container {
+      background: #2a2a2a;
+      padding: 20px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 16px;
+    }
+
+    canvas {
+      border: 2px solid #000;
+      max-width: 100%;
+      height: auto;
+    }
+
+    .placeholder {
+      border: 2px dashed #333;
+      border-radius: 8px;
+      padding: 60px 20px;
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+    }
+
+    @media (max-width: 1024px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>2D Cutting Planner</h1>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="section">
+        <h2>Stock Material</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="stock-width">Width (mm)</label>
+            <input type="number" id="stock-width" value="2400" min="1">
+          </div>
+          <div class="form-group">
+            <label for="stock-height">Height (mm)</label>
+            <input type="number" id="stock-height" value="1200" min="1">
+          </div>
+          <div class="form-group">
+            <label for="stock-margin">Margin (mm)</label>
+            <input type="number" id="stock-margin" value="3" min="0">
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Parts</h2>
+        <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr 80px;">
+          <div class="form-group">
+            <label for="part-width">Width</label>
+            <input type="number" id="part-width" value="400" min="1">
+          </div>
+          <div class="form-group">
+            <label for="part-height">Height</label>
+            <input type="number" id="part-height" value="300" min="1">
+          </div>
+          <div class="form-group">
+            <label for="part-quantity">Qty</label>
+            <input type="number" id="part-quantity" value="1" min="1">
+          </div>
+          <div class="form-group">
+            <label style="opacity: 0;">Add</label>
+            <button onclick="addPart()">Add</button>
+          </div>
+        </div>
+
+        <div id="parts-list" class="parts-table" style="display: none;">
+          <div class="parts-header">
+            <div>Width</div>
+            <div>Height</div>
+            <div>Qty</div>
+            <div>Area</div>
+            <div></div>
+          </div>
+          <ul id="parts-rows"></ul>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button onclick="calculate()" id="calc-btn" disabled style="flex: 1;">Calculate Layout</button>
+        <button onclick="reset()" class="secondary">Reset</button>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div>
+      <div id="results" style="display: none;">
+        <div class="section">
+          <h2>Statistics</h2>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-label">Efficiency</div>
+              <div class="stat-value" id="stat-efficiency">0%</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Waste Area</div>
+              <div class="stat-value" id="stat-waste">0 mm²</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Parts Placed</div>
+              <div class="stat-value" id="stat-placed">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Parts Unplaced</div>
+              <div class="stat-value" id="stat-unplaced">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Cutting Layout</h2>
+          <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+          </div>          
+        </div>
+      </div>
+
+      <div id="placeholder" class="placeholder">
+        Add parts and click Calculate Layout to see results
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let parts = [];
+    let nextId = 1;
+
+    function addPart() {
+      let width = parseInt(document.getElementById('part-width').value);
+      let height = parseInt(document.getElementById('part-height').value);
+      let quantity = parseInt(document.getElementById('part-quantity').value);
+
+      if (width > 0 && height > 0 && quantity > 0) {
+        parts.push({ id: nextId++, width, height, quantity });
+        document.getElementById('part-quantity').value = 1;
+        updatePartsList();
+      }
+    }
+
+    function removePart(id) {
+      parts = parts.filter(p => p.id !== id);
+      updatePartsList();
+    }
+
+    function updatePartsList() {
+      let list = document.getElementById('parts-list');
+      let rows = document.getElementById('parts-rows');
+      let calcBtn = document.getElementById('calc-btn');
+
+      if (parts.length === 0) {
+        list.style.display = 'none';
+        calcBtn.disabled = true;
+      } else {
+        list.style.display = 'block';
+        calcBtn.disabled = false;
+        rows.innerHTML = parts.map(part => `
+          <li>
+            <div>${part.width}</div>
+            <div>${part.height}</div>
+            <div>${part.quantity}</div>
+            <div style="color: #888;">${(part.width * part.height * part.quantity).toLocaleString()}</div>
+            <div>
+              <button class="remove" onclick="removePart(${part.id})">×</button>
+            </div>
+          </li>
+        `).join('');
+      }
+    }
+
+    function calculate() {
+      let stockWidth = parseInt(document.getElementById('stock-width').value);
+      let stockHeight = parseInt(document.getElementById('stock-height').value);
+      let margin = parseInt(document.getElementById('stock-margin').value);
+
+      let result = optimizeCutting(
+        { width: stockWidth, height: stockHeight, margin },
+        parts
+      );
+
+      displayResults(result, { width: stockWidth, height: stockHeight });
+    }
+
+    function reset() {
+      parts = [];
+      updatePartsList();
+      document.getElementById('results').style.display = 'none';
+      document.getElementById('placeholder').style.display = 'block';
+    }
+
+    function displayResults(result, stock) {
+      document.getElementById('results').style.display = 'block';
+      document.getElementById('placeholder').style.display = 'none';
+
+      document.getElementById('stat-efficiency').textContent = result.efficiency.toFixed(1) + '%';
+      document.getElementById('stat-waste').textContent = result.wasteArea.toLocaleString() + ' mm²';
+      document.getElementById('stat-placed').textContent = result.placedParts.length;
+      document.getElementById('stat-unplaced').textContent = result.unplacedParts.length;
+
+      drawLayout(result, stock);
+    }
+
+    function drawLayout(result, stock) {
+      let canvas = document.getElementById('canvas');
+      let ctx = canvas.getContext('2d');
+
+      let maxWidth = 600;
+      let scale = Math.min(maxWidth / stock.width, maxWidth / stock.height);
+      let displayWidth = stock.width * scale;
+      let displayHeight = stock.height * scale;
+
+      canvas.width = displayWidth;
+      canvas.height = displayHeight;
+
+      // Clear canvas
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, displayWidth, displayHeight);
+
+      // Draw stock border
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(0, 0, displayWidth, displayHeight);
+
+      let colors = ['#1a1a1a', '#4a4a4a', '#2a2a2a', '#3a3a3a'];
+
+      result.placedParts.forEach((placedPart, index) => {
+        let x = placedPart.x * scale;
+        let y = placedPart.y * scale;
+        let width = placedPart.width * scale;
+        let height = placedPart.height * scale;
+
+        // Fill part
+        ctx.fillStyle = colors[index % colors.length];
+        ctx.fillRect(x, y, width, height);
+
+        // Draw border
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, width, height);
+
+        // Draw dimensions
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        let text = placedPart.rotated
+          ? `${placedPart.part.height}×${placedPart.part.width}↻`
+          : `${placedPart.part.width}×${placedPart.part.height}`;
+
+        if (width > 40 && height > 20) {
+          ctx.fillText(text, x + width / 2, y + height / 2);
+        }
+      });
+    }
+
+    function optimizeCutting(stock, parts) {
+      let margin = stock.margin;
+
+      let expandedParts = [];
+      parts.forEach(part => {
+        for (let i = 0; i < part.quantity; i++) {
+          expandedParts.push({
+            ...part,
+            instanceId: `${part.id}-${i}`
+          });
+        }
+      });
+
+      // Sort by longer side first (helps preserve rectangular stock better)
+      expandedParts.sort((a, b) => {
+        let maxA = Math.max(a.width, a.height);
+        let maxB = Math.max(b.width, b.height);
+        if (maxB !== maxA) return maxB - maxA;
+        return (b.width * b.height) - (a.width * a.height);
+      });
+
+      let placedParts = [];
+      let unplacedParts = [];
+      let freeRectangles = [{ x: 0, y: 0, width: stock.width, height: stock.height }];
+
+      for (let part of expandedParts) {
+        let bestFit = findBestFit(freeRectangles, part, margin);
+
+        if (bestFit) {
+          placedParts.push({
+            part,
+            x: bestFit.rect.x,
+            y: bestFit.rect.y,
+            width: bestFit.width,
+            height: bestFit.height,
+            rotated: bestFit.rotated
+          });
+
+          splitRectangleOptimized(freeRectangles, bestFit.index, bestFit.width + margin, bestFit.height + margin, bestFit.rect);
+
+          mergeRectangles(freeRectangles);
+        } else {
+          unplacedParts.push(part);
+        }
+      }
+
+      let usedArea = placedParts.reduce((sum, p) => sum + p.width * p.height, 0);
+      let stockArea = stock.width * stock.height;
+      let efficiency = (usedArea / stockArea) * 100;
+      let wasteArea = stockArea - usedArea;
+
+      return {
+        placedParts,
+        unplacedParts,
+        efficiency,
+        wasteArea
+      };
+    }
+
+    function findBestFit(freeRectangles, part, margin) {
+      let bestFit = null;
+      let bestScore = Infinity;
+
+      for (let i = 0; i < freeRectangles.length; i++) {
+        let rect = freeRectangles[i];
+
+        // Try normal orientation
+        if (part.width <= rect.width && part.height <= rect.height) {
+          // Best Short Side Fit (BSSF) - minimize wasted space on shorter side
+          let leftoverX = rect.width - part.width;
+          let leftoverY = rect.height - part.height;
+          let shortSideFit = Math.min(leftoverX, leftoverY);
+          let longSideFit = Math.max(leftoverX, leftoverY);
+
+          // Prefer fits that leave larger contiguous remnants
+          let score = shortSideFit * 1000 + longSideFit;
+
+          if (score < bestScore) {
+            bestScore = score;
+            bestFit = {
+              index: i,
+              rect: rect,
+              width: part.width,
+              height: part.height,
+              rotated: false
+            };
+          }
+        }
+
+        // Try rotated orientation
+        if (part.height <= rect.width && part.width <= rect.height) {
+          let leftoverX = rect.width - part.height;
+          let leftoverY = rect.height - part.width;
+          let shortSideFit = Math.min(leftoverX, leftoverY);
+          let longSideFit = Math.max(leftoverX, leftoverY);
+
+          let score = shortSideFit * 1000 + longSideFit;
+
+          if (score < bestScore) {
+            bestScore = score;
+            bestFit = {
+              index: i,
+              rect: rect,
+              width: part.height,
+              height: part.width,
+              rotated: true
+            };
+          }
+        }
+      }
+
+      return bestFit;
+    }
+
+    function splitRectangleOptimized(freeRectangles, index, usedWidth, usedHeight, rect) {
+      freeRectangles.splice(index, 1);
+
+      let horizontalRemnantArea = (rect.width - usedWidth) * rect.height;
+      let verticalRemnantArea = rect.width * (rect.height - usedHeight);
+
+      // Choose the split that creates the larger single remnant
+      // This leaves the maximum untouched area
+      if (rect.width > usedWidth && rect.height > usedHeight) {
+        if (horizontalRemnantArea > verticalRemnantArea) {
+          // Horizontal split - create one large right remnant
+          freeRectangles.push({
+            x: rect.x + usedWidth,
+            y: rect.y,
+            width: rect.width - usedWidth,
+            height: rect.height
+          });
+
+          // Small bottom-left remnant
+          if (usedHeight < rect.height) {
+            freeRectangles.push({
+              x: rect.x,
+              y: rect.y + usedHeight,
+              width: usedWidth,
+              height: rect.height - usedHeight
+            });
+          }
+        } else {
+          // Vertical split - create one large bottom remnant
+          freeRectangles.push({
+            x: rect.x,
+            y: rect.y + usedHeight,
+            width: rect.width,
+            height: rect.height - usedHeight
+          });
+
+          // Small right-top remnant
+          if (usedWidth < rect.width) {
+            freeRectangles.push({
+              x: rect.x + usedWidth,
+              y: rect.y,
+              width: rect.width - usedWidth,
+              height: usedHeight
+            });
+          }
+        }
+      } else if (rect.width > usedWidth) {
+        // Only horizontal remnant possible
+        freeRectangles.push({
+          x: rect.x + usedWidth,
+          y: rect.y,
+          width: rect.width - usedWidth,
+          height: rect.height
+        });
+      } else if (rect.height > usedHeight) {
+        // Only vertical remnant possible
+        freeRectangles.push({
+          x: rect.x,
+          y: rect.y + usedHeight,
+          width: rect.width,
+          height: rect.height - usedHeight
+        });
+      }
+
+      // Sort by area (largest first) to prioritize larger remnants
+      freeRectangles.sort((a, b) => (b.width * b.height) - (a.width * a.height));
+    }
+
+    function mergeRectangles(freeRectangles) {
+      let i = 0;
+      while (i < freeRectangles.length) {
+        let j = i + 1;
+        while (j < freeRectangles.length) {
+          const rect1 = freeRectangles[i];
+          const rect2 = freeRectangles[j];
+
+          if (isContained(rect1, rect2)) {
+            // rect1 is fully inside rect2, so remove rect1
+            freeRectangles.splice(i, 1);
+            i--; // Decrement i to re-check the current index
+            break; // Exit inner loop
+          } else if (isContained(rect2, rect1)) {
+            // rect2 is fully inside rect1, so remove rect2
+            freeRectangles.splice(j, 1);
+            continue; // Continue inner loop with the same j index
+          } else if (canMerge(rect1, rect2)) {
+            // Merge rect2 into rect1 and remove rect2
+            rect1.width = Math.max(rect1.x + rect1.width, rect2.x + rect2.width) - rect1.x;
+            rect1.height = Math.max(rect1.y + rect1.height, rect2.y + rect2.height) - rect1.y;
+            freeRectangles.splice(j, 1);
+
+            // After a merge, we should restart the process to check for new merge opportunities
+            i = -1;
+            break;
+          }
+          j++;
+        }
+        i++;
+      }
+    }
+
+    function canMerge(rect1, rect2) {
+      // Check for horizontal merge
+      if (rect1.y === rect2.y && rect1.height === rect2.height) {
+        if (rect1.x + rect1.width === rect2.x || rect2.x + rect2.width === rect1.x) {
+          return true;
+        }
+      }
+      // Check for vertical merge
+      if (rect1.x === rect2.x && rect1.width === rect2.width) {
+        if (rect1.y + rect1.height === rect2.y || rect2.y + rect2.height === rect1.y) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function isContained(rect1, rect2) {
+      // Checks if rect1 is contained in rect2
+      return rect1.x >= rect2.x &&
+        rect1.y >= rect2.y &&
+        rect1.x + rect1.width <= rect2.x + rect2.width &&
+        rect1.y + rect1.height <= rect2.y + rect2.height;
+    }
+
+    updatePartsList();
+  </script>
+</body>
+
+</html>
