@@ -220,8 +220,89 @@
       font-size: 14px;
     }
 
+    .box-designer {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .box-3d-container {
+      perspective: 600px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 200px;
+    }
+
+    .box-3d {
+      width: 120px;
+      height: 140px;
+      position: relative;
+      transform-style: preserve-3d;
+      transform: rotateX(-15deg) rotateY(25deg);
+      animation: rotate 8s infinite linear;
+    }
+
+    @keyframes rotate {
+      0% { transform: rotateX(-15deg) rotateY(25deg); }
+      50% { transform: rotateX(-15deg) rotateY(205deg); }
+      100% { transform: rotateX(-15deg) rotateY(25deg); }
+    }
+
+    .box-3d-face {
+      position: absolute;
+      border: 2px solid #666;
+      background: rgba(100, 100, 100, 0.5);
+      backdrop-filter: blur(4px);
+    }
+
+    .box-front {
+      width: 120px;
+      height: 140px;
+      transform: translateZ(60px);
+    }
+
+    .box-back {
+      width: 120px;
+      height: 140px;
+      transform: translateZ(-60px) rotateY(180deg);
+    }
+
+    .box-right {
+      width: 120px;
+      height: 140px;
+      transform: rotateY(-270deg) translateX(60px);
+      transform-origin: top right;
+    }
+
+    .box-left {
+      width: 120px;
+      height: 140px;
+      transform: rotateY(270deg) translateX(-60px);
+      transform-origin: center left;
+    }
+
+    .box-top {
+      width: 120px;
+      height: 120px;
+      transform: rotateX(-270deg) translateY(-70px);
+      transform-origin: top center;
+    }
+
+    .box-bottom {
+      width: 120px;
+      height: 120px;
+      transform: rotateX(-270deg) translateY(70px);
+      transform-origin: bottom center;
+    }
+
     @media (max-width: 1024px) {
       .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .box-designer {
         grid-template-columns: 1fr;
       }
     }
@@ -237,7 +318,7 @@
     <div>
       <div class="section">
         <h2>Kesilecek Malzeme</h2>
-        <div class="form-grid">
+        <div class="form-grid" style="grid-template-columns: repeat(4, 1fr);">
           <div class="form-group">
             <label for="stock-width">Genişlik (mm)</label>
             <input type="number" id="stock-width" value="2100" min="1">
@@ -247,8 +328,48 @@
             <input type="number" id="stock-height" value="2800" min="1">
           </div>
           <div class="form-group">
+            <label for="stock-thickness">Kalınlık (mm)</label>
+            <input type="number" id="stock-thickness" value="18" min="1">
+          </div>
+          <div class="form-group">
             <label for="stock-margin">Boşluk (mm)</label>
             <input type="number" id="stock-margin" value="3" min="0">
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Kutu Tasarla</h2>
+        <div class="box-designer">
+          <div class="box-3d-container">
+            <div class="box-3d">
+              <div class="box-3d-face box-front"></div>
+              <div class="box-3d-face box-back"></div>
+              <div class="box-3d-face box-right"></div>
+              <div class="box-3d-face box-left"></div>
+              <div class="box-3d-face box-top"></div>
+              <div class="box-3d-face box-bottom"></div>
+            </div>
+          </div>
+          <div>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr 100px;">
+              <div class="form-group">
+                <label for="box-width">En (mm)</label>
+                <input type="number" id="box-width" value="500" min="1">
+              </div>
+              <div class="form-group">
+                <label for="box-depth">Boy (mm)</label>
+                <input type="number" id="box-depth" value="1200" min="1">
+              </div>
+              <div class="form-group">
+                <label for="box-height">Yükseklik (mm)</label>
+                <input type="number" id="box-height" value="1300" min="1">
+              </div>
+              <div class="form-group">
+                <label style="opacity: 0;">Ekle</label>
+                <button onclick="addBoxParts()">Parçaları Ekle</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -334,6 +455,45 @@
   <script>
     let parts = [];
     let nextId = 1;
+
+    function addBoxParts() {
+      let thickness = parseInt(document.getElementById('stock-thickness').value);
+      let width = parseInt(document.getElementById('box-width').value);
+      let depth = parseInt(document.getElementById('box-depth').value);
+      let height = parseInt(document.getElementById('box-height').value);
+
+      if (width <= 0 || depth <= 0 || height <= 0 || thickness <= 0) {
+        alert('Lütfen geçerli değerler girin');
+        return;
+      }
+
+      if (height <= 2 * thickness) {
+        alert('Yükseklik en az kalınlığın 2 katından büyük olmalıdır');
+        return;
+      }
+
+      if (depth <= 2 * thickness) {
+        alert('Boy en az kalınlığın 2 katından büyük olmalıdır');
+        return;
+      }
+
+      // Kutu parçalarını hesapla
+      // Üst ve Alt: En x Boy
+      let topBottom = { width: width, height: depth, quantity: 2 };
+
+      // Ön ve Arka: En x (Yükseklik - 2*kalınlık)
+      let frontBack = { width: width, height: height - 2 * thickness, quantity: 2 };
+
+      // Sol ve Sağ: (Boy - 2*kalınlık) x (Yükseklik - 2*kalınlık)
+      let leftRight = { width: depth - 2 * thickness, height: height - 2 * thickness, quantity: 2 };
+
+      // Parçaları ekle
+      parts.push({ id: nextId++, ...topBottom });
+      parts.push({ id: nextId++, ...frontBack });
+      parts.push({ id: nextId++, ...leftRight });
+
+      updatePartsList();
+    }
 
     function addPart() {
       let width = parseInt(document.getElementById('part-width').value);
