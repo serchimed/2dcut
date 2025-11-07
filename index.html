@@ -220,78 +220,8 @@
       font-size: 14px;
     }
 
-    .box-designer {
-      display: grid;
-      grid-template-columns: 200px 1fr;
-      gap: 24px;
-      align-items: center;
-    }
-
-    .box-3d-container {
-      perspective: 600px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 200px;
-    }
-
-    .box-3d {
-      width: 120px;
-      height: 140px;
-      position: relative;
-      transform-style: preserve-3d;
-      transform: rotateX(-15deg) rotateY(25deg);
-    }
-
-    .box-3d-face {
-      position: absolute;
-      border: 2px solid #666;
-      background: rgba(100, 100, 100, 0.5);
-      backdrop-filter: blur(4px);
-    }
-
-    .box-front {
-      width: 120px;
-      height: 140px;
-      transform: translateZ(60px);
-    }
-
-    .box-back {
-      width: 120px;
-      height: 140px;
-      transform: translateZ(-60px) rotateY(180deg);
-    }
-
-    .box-right {
-      width: 120px;
-      height: 140px;
-      transform: rotateY(90deg) translateZ(60px);
-    }
-
-    .box-left {
-      width: 120px;
-      height: 140px;
-      transform: rotateY(-90deg) translateZ(60px);
-    }
-
-    .box-top {
-      width: 120px;
-      height: 120px;
-      transform: rotateX(90deg) translateZ(70px);
-    }
-
-    .box-bottom {
-      width: 120px;
-      height: 120px;
-      transform: rotateX(-90deg) translateZ(-70px);
-    }
-
     @media (max-width: 1024px) {
       .grid {
-        grid-template-columns: 1fr;
-      }
-
-      .box-designer {
         grid-template-columns: 1fr;
       }
     }
@@ -329,36 +259,22 @@
 
       <div class="section">
         <h2>Dolap Boyutuna Göre Parçaları Ekle</h2>
-        <div class="box-designer">
-          <div class="box-3d-container">
-            <div class="box-3d">
-              <div class="box-3d-face box-front"></div>
-              <div class="box-3d-face box-back"></div>
-              <div class="box-3d-face box-right"></div>
-              <div class="box-3d-face box-left"></div>
-              <div class="box-3d-face box-top"></div>
-              <div class="box-3d-face box-bottom"></div>
-            </div>
+        <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr 100px;">
+          <div class="form-group">
+            <label for="box-width">En (mm)</label>
+            <input type="number" id="box-width" value="500" min="1">
           </div>
-          <div>
-            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr 100px;">
-              <div class="form-group">
-                <label for="box-width">En (mm)</label>
-                <input type="number" id="box-width" value="500" min="1">
-              </div>
-              <div class="form-group">
-                <label for="box-depth">Boy (mm)</label>
-                <input type="number" id="box-depth" value="1200" min="1">
-              </div>
-              <div class="form-group">
-                <label for="box-height">Yükseklik (mm)</label>
-                <input type="number" id="box-height" value="1300" min="1">
-              </div>
-              <div class="form-group">
-                <label style="opacity: 0;">Ekle</label>
-                <button onclick="addBoxParts()">Parçaları Ekle</button>
-              </div>
-            </div>
+          <div class="form-group">
+            <label for="box-depth">Boy (mm)</label>
+            <input type="number" id="box-depth" value="1200" min="1">
+          </div>
+          <div class="form-group">
+            <label for="box-height">Yükseklik (mm)</label>
+            <input type="number" id="box-height" value="1300" min="1">
+          </div>
+          <div class="form-group">
+            <label style="opacity: 0;">Ekle</label>
+            <button onclick="addBoxParts()">Parçaları Ekle</button>
           </div>
         </div>
       </div>
@@ -666,12 +582,19 @@
         }
       });
 
-      // Sort by longer side first (helps preserve rectangular stock better)
+      // Sort by grouping same dimensions together for efficient cutting
       expandedParts.sort((a, b) => {
-        let maxA = Math.max(a.width, a.height);
-        let maxB = Math.max(b.width, b.height);
-        if (maxB !== maxA) return maxB - maxA;
-        return (b.width * b.height) - (a.width * a.height);
+        // Group by exact dimensions (normalize to compare regardless of rotation)
+        let dimKeyA = `${Math.max(a.width, a.height)}x${Math.min(a.width, a.height)}`;
+        let dimKeyB = `${Math.max(b.width, b.height)}x${Math.min(b.width, b.height)}`;
+
+        if (dimKeyA !== dimKeyB) {
+          // Different dimensions - sort by area (largest first)
+          return (b.width * b.height) - (a.width * a.height);
+        }
+
+        // Same dimensions - keep them together for efficient grouping
+        return 0;
       });
 
       let placedParts = [];
