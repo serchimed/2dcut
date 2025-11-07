@@ -145,7 +145,7 @@
 
     .parts-header {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr 1.5fr 60px;
+      grid-template-columns: 1fr 1fr 1fr 60px;
       gap: 8px;
       padding: 8px;
       border-bottom: 1px solid #333;
@@ -160,7 +160,7 @@
 
     #parts-rows li {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr 1.5fr 60px;
+      grid-template-columns: 1fr 1fr 1fr 60px;
       gap: 8px;
       padding: 8px;
       background: #2a2a2a;
@@ -241,13 +241,6 @@
       position: relative;
       transform-style: preserve-3d;
       transform: rotateX(-15deg) rotateY(25deg);
-      animation: rotate 8s infinite linear;
-    }
-
-    @keyframes rotate {
-      0% { transform: rotateX(-15deg) rotateY(25deg); }
-      50% { transform: rotateX(-15deg) rotateY(205deg); }
-      100% { transform: rotateX(-15deg) rotateY(25deg); }
     }
 
     .box-3d-face {
@@ -272,29 +265,25 @@
     .box-right {
       width: 120px;
       height: 140px;
-      transform: rotateY(-270deg) translateX(60px);
-      transform-origin: top right;
+      transform: rotateY(90deg) translateZ(60px);
     }
 
     .box-left {
       width: 120px;
       height: 140px;
-      transform: rotateY(270deg) translateX(-60px);
-      transform-origin: center left;
+      transform: rotateY(-90deg) translateZ(60px);
     }
 
     .box-top {
       width: 120px;
       height: 120px;
-      transform: rotateX(-270deg) translateY(-70px);
-      transform-origin: top center;
+      transform: rotateX(90deg) translateZ(70px);
     }
 
     .box-bottom {
       width: 120px;
       height: 120px;
-      transform: rotateX(-270deg) translateY(70px);
-      transform-origin: bottom center;
+      transform: rotateX(-90deg) translateZ(-70px);
     }
 
     @media (max-width: 1024px) {
@@ -339,7 +328,7 @@
       </div>
 
       <div class="section">
-        <h2>Kutu Tasarla</h2>
+        <h2>Dolap Boyutuna Göre Parçaları Ekle</h2>
         <div class="box-designer">
           <div class="box-3d-container">
             <div class="box-3d">
@@ -400,7 +389,6 @@
             <div>Genişlik</div>
             <div>Yükseklik</div>
             <div>Adet</div>
-            <div>Alan</div>
             <div></div>
           </div>
           <ul id="parts-rows"></ul>
@@ -528,7 +516,6 @@
             <div>${part.width}</div>
             <div>${part.height}</div>
             <div>${part.quantity}</div>
-            <div style="color: #888;">${(part.width * part.height * part.quantity).toLocaleString()}</div>
             <div>
               <button class="remove" onclick="removePart(${part.id})">×</button>
             </div>
