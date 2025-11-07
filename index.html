@@ -358,6 +358,7 @@
             <div></div>
           </div>
           <ul id="parts-rows"></ul>
+          <div id="parts-total" style="margin-top: 12px; padding: 8px; background: #1a1a1a; border-radius: 4px; text-align: right; font-size: 13px; color: #888;"></div>
         </div>
       </div>
 
@@ -424,20 +425,36 @@
 
       // Kutu parçalarını hesapla
       // Üst ve Alt: En x Boy
-      let topBottom = { width: width, height: depth, quantity: 2 };
+      addOrIncrementPart(width, depth, 2);
 
       // Ön ve Arka: En x (Yükseklik - 2*kalınlık)
-      let frontBack = { width: width, height: height - 2 * thickness, quantity: 2 };
+      addOrIncrementPart(width, height - 2 * thickness, 2);
 
       // Sol ve Sağ: (Boy - 2*kalınlık) x (Yükseklik - 2*kalınlık)
-      let leftRight = { width: depth - 2 * thickness, height: height - 2 * thickness, quantity: 2 };
-
-      // Parçaları ekle
-      parts.push({ id: nextId++, ...topBottom });
-      parts.push({ id: nextId++, ...frontBack });
-      parts.push({ id: nextId++, ...leftRight });
+      addOrIncrementPart(depth - 2 * thickness, height - 2 * thickness, 2);
 
       updatePartsList();
+    }
+
+    function addOrIncrementPart(width, height, quantity) {
+      // Normalize dimensions to check for duplicates (400x300 === 300x400)
+      let normalizedWidth = Math.max(width, height);
+      let normalizedHeight = Math.min(width, height);
+
+      // Find existing part with same normalized dimensions
+      let existingPart = parts.find(p => {
+        let pNormWidth = Math.max(p.width, p.height);
+        let pNormHeight = Math.min(p.width, p.height);
+        return pNormWidth === normalizedWidth && pNormHeight === normalizedHeight;
+      });
+
+      if (existingPart) {
+        // Increment quantity of existing part
+        existingPart.quantity += quantity;
+      } else {
+        // Add new part
+        parts.push({ id: nextId++, width, height, quantity });
+      }
     }
 
     function addPart() {
@@ -446,7 +463,7 @@
       let quantity = parseInt(document.getElementById('part-quantity').value);
 
       if (width > 0 && height > 0 && quantity > 0) {
-        parts.push({ id: nextId++, width, height, quantity });
+        addOrIncrementPart(width, height, quantity);
         document.getElementById('part-quantity').value = 1;
         updatePartsList();
       }
@@ -460,6 +477,7 @@
     function updatePartsList() {
       let list = document.getElementById('parts-list');
       let rows = document.getElementById('parts-rows');
+      let totalDiv = document.getElementById('parts-total');
       let calcBtn = document.getElementById('calc-btn');
 
       if (parts.length === 0) {
@@ -478,6 +496,11 @@
             </div>
           </li>
         `).join('');
+
+        // Calculate and display total parts count
+        let totalParts = parts.reduce((sum, part) => sum + part.quantity, 0);
+        let uniqueParts = parts.length;
+        totalDiv.textContent = `Toplam: ${uniqueParts} farklı parça, ${totalParts} adet`;
       }
     }
 
