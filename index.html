@@ -582,12 +582,19 @@
         }
       });
 
-      // Sort by longer side first (helps preserve rectangular stock better)
+      // Sort by grouping same dimensions together for efficient cutting
       expandedParts.sort((a, b) => {
-        let maxA = Math.max(a.width, a.height);
-        let maxB = Math.max(b.width, b.height);
-        if (maxB !== maxA) return maxB - maxA;
-        return (b.width * b.height) - (a.width * a.height);
+        // Group by exact dimensions (normalize to compare regardless of rotation)
+        let dimKeyA = `${Math.max(a.width, a.height)}x${Math.min(a.width, a.height)}`;
+        let dimKeyB = `${Math.max(b.width, b.height)}x${Math.min(b.width, b.height)}`;
+
+        if (dimKeyA !== dimKeyB) {
+          // Different dimensions - sort by area (largest first)
+          return (b.width * b.height) - (a.width * a.height);
+        }
+
+        // Same dimensions - keep them together for efficient grouping
+        return 0;
       });
 
       let placedParts = [];
