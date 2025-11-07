@@ -211,6 +211,56 @@
       height: auto;
     }
 
+    .placement-log {
+      margin-top: 16px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 4px;
+    }
+
+    .placement-log summary {
+      padding: 12px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #888;
+      user-select: none;
+    }
+
+    .placement-log summary:hover {
+      color: #aaa;
+      background: #222;
+    }
+
+    .placement-log[open] summary {
+      border-bottom: 1px solid #333;
+    }
+
+    .log-entries {
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.8;
+      color: #999;
+    }
+
+    .log-entry {
+      padding: 6px 0;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .log-entry-part {
+      color: #fff;
+      font-weight: bold;
+    }
+
+    .log-entry-reason {
+      color: #888;
+      margin-left: 8px;
+    }
+
     .placeholder {
       border: 2px dashed #333;
       border-radius: 8px;
@@ -487,6 +537,30 @@
         canvasContainer.appendChild(canvas);
 
         section.appendChild(canvasContainer);
+
+        // Add placement log
+        if (sheet.log && sheet.log.length > 0) {
+          let logDetails = document.createElement('details');
+          logDetails.className = 'placement-log';
+
+          let logSummary = document.createElement('summary');
+          logSummary.textContent = `Yerleşim Detayları (${sheet.log.length} adım)`;
+          logDetails.appendChild(logSummary);
+
+          let logEntries = document.createElement('div');
+          logEntries.className = 'log-entries';
+
+          sheet.log.forEach(entry => {
+            let entryDiv = document.createElement('div');
+            entryDiv.className = 'log-entry';
+            entryDiv.innerHTML = entry;
+            logEntries.appendChild(entryDiv);
+          });
+
+          logDetails.appendChild(logEntries);
+          section.appendChild(logDetails);
+        }
+
         sheetsContainer.appendChild(section);
 
         drawLayout(sheet, stock, canvas);
@@ -552,14 +626,25 @@
       let maxSheets = 10; // Maximum number of sheets to prevent infinite loop
 
       while (remainingParts.length > 0 && sheets.length < maxSheets) {
-        let result = optimizeCutting(stock, remainingParts);
+        let sheetNumber = sheets.length + 1;
+        let result = optimizeCutting(stock, remainingParts, sheetNumber);
 
         if (result.placedParts.length === 0) {
           // No parts could be placed, stop to avoid infinite loop
+          if (result.log) {
+            result.log.push(`<span class="log-entry-part">⚠ Uyarı:</span> <span class="log-entry-reason">Kalan parçalar bu plaka boyutuna sığmıyor</span>`);
+          }
           break;
         }
 
         sheets.push(result);
+
+        // Log transition to next sheet if there are unplaced parts
+        if (result.unplacedParts.length > 0 && sheets.length < maxSheets) {
+          let unplacedCount = result.unplacedParts.reduce((sum, p) => sum + p.quantity, 0);
+          result.log.push(`<br><span class="log-entry-part">📋 Sonraki Plakaya Geçiş:</span> <span class="log-entry-reason">${unplacedCount} parça sığmadı, yeni plaka açılıyor</span>`);
+        }
+
         remainingParts = result.unplacedParts;
       }
 
@@ -569,8 +654,11 @@
       };
     }
 
-    function optimizeCutting(stock, parts) {
+    function optimizeCutting(stock, parts, sheetNumber = 1) {
       let margin = stock.margin;
+      let log = [];
+
+      log.push(`<span class="log-entry-part">🔧 Plaka ${sheetNumber} Başlangıç:</span> <span class="log-entry-reason">${parts.reduce((sum, p) => sum + p.quantity, 0)} parça yerleştirilecek</span>`);
 
       let expandedParts = [];
       parts.forEach(part => {
@@ -600,11 +688,13 @@
       let placedParts = [];
       let unplacedParts = [];
       let freeRectangles = [{ x: 0, y: 0, width: stock.width, height: stock.height }];
+      let placedCount = 0;
 
       for (let part of expandedParts) {
         let bestFit = findBestFit(freeRectangles, part, margin);
 
         if (bestFit) {
+          placedCount++;
           placedParts.push({
             part,
             x: bestFit.rect.x,
@@ -614,11 +704,25 @@
             rotated: bestFit.rotated
           });
 
+          let rotationText = bestFit.rotated ? ' (90° döndürüldü)' : '';
+          let leftoverX = bestFit.rect.width - bestFit.width;
+          let leftoverY = bestFit.rect.height - bestFit.height;
+
+          log.push(
+            `<span class="log-entry-part">#${placedCount} ${part.width}×${part.height}mm</span> ` +
+            `<span class="log-entry-reason">→ (${bestFit.rect.x}, ${bestFit.rect.y}) konumuna yerleştirildi${rotationText}. ` +
+            `Kalan boşluk: ${leftoverX}×${leftoverY}mm</span>`
+          );
+
           splitRectangleOptimized(freeRectangles, bestFit.index, bestFit.width + margin, bestFit.height + margin, bestFit.rect);
 
           mergeRectangles(freeRectangles);
         } else {
           unplacedParts.push(part);
+          log.push(
+            `<span class="log-entry-part">✗ ${part.width}×${part.height}mm</span> ` +
+            `<span class="log-entry-reason">→ Uygun boşluk bulunamadı, sonraki plakaya alınacak</span>`
+          );
         }
       }
 
@@ -627,11 +731,14 @@
       let efficiency = (usedArea / stockArea) * 100;
       let wasteArea = stockArea - usedArea;
 
+      log.push(`<br><span class="log-entry-part">✓ Tamamlandı:</span> <span class="log-entry-reason">${placedCount} parça yerleştirildi, fire alanı: ${wasteArea.toLocaleString()}mm²</span>`);
+
       return {
         placedParts,
         unplacedParts,
         efficiency,
-        wasteArea
+        wasteArea,
+        log
       };
     }
 
