@@ -298,7 +298,7 @@
           </div>
           <div class="form-group">
             <label for="stock-thickness">Kalınlık (mm)</label>
-            <input type="number" id="stock-thickness" value="18" min="1">
+            <input type="number" id="stock-thickness" value="18" min="1" oninput="updateEdgeBandInfo()">
           </div>
           <div class="form-group">
             <label for="stock-margin">Boşluk (mm)</label>
@@ -312,20 +312,24 @@
         <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr 100px;">
           <div class="form-group">
             <label for="box-width">En (mm)</label>
-            <input type="number" id="box-width" value="500" min="1">
+            <input type="number" id="box-width" value="500" min="1" oninput="updateEdgeBandInfo()">
           </div>
           <div class="form-group">
             <label for="box-depth">Boy (mm)</label>
-            <input type="number" id="box-depth" value="1200" min="1">
+            <input type="number" id="box-depth" value="1200" min="1" oninput="updateEdgeBandInfo()">
           </div>
           <div class="form-group">
             <label for="box-height">Yükseklik (mm)</label>
-            <input type="number" id="box-height" value="1300" min="1">
+            <input type="number" id="box-height" value="1300" min="1" oninput="updateEdgeBandInfo()">
           </div>
           <div class="form-group">
             <label style="opacity: 0;">Ekle</label>
             <button onclick="addBoxParts()">Parçaları Ekle</button>
           </div>
+        </div>
+        <div id="edge-band-info" style="margin-top: 12px; padding: 12px; background: #1a1a1a; border-radius: 4px; font-size: 13px; color: #888; border-left: 3px solid #666;">
+          <div style="color: #aaa; margin-bottom: 4px;">📏 Kenarbant İhtiyacı (Görünen Yüzeyler)</div>
+          <div id="edge-band-length" style="color: #fff; font-size: 15px; font-weight: bold;">-</div>
         </div>
       </div>
 
@@ -358,6 +362,7 @@
             <div></div>
           </div>
           <ul id="parts-rows"></ul>
+          <div id="parts-total" style="margin-top: 12px; padding: 8px; background: #1a1a1a; border-radius: 4px; text-align: right; font-size: 13px; color: #888;"></div>
         </div>
       </div>
 
@@ -401,6 +406,47 @@
     let parts = [];
     let nextId = 1;
 
+    function updateEdgeBandInfo() {
+      let thickness = parseInt(document.getElementById('stock-thickness').value);
+      let width = parseInt(document.getElementById('box-width').value);
+      let depth = parseInt(document.getElementById('box-depth').value);
+      let height = parseInt(document.getElementById('box-height').value);
+
+      if (width <= 0 || depth <= 0 || height <= 0 || thickness <= 0) {
+        document.getElementById('edge-band-length').textContent = '-';
+        return;
+      }
+
+      if (height <= 2 * thickness || depth <= 2 * thickness) {
+        document.getElementById('edge-band-length').textContent = 'Geçersiz boyutlar';
+        return;
+      }
+
+      // Görünen kenarları hesapla
+      // Üst ve Alt parçalar: En x Boy (2 adet)
+      // Görünen kenarlar: 2 x En (ön kenar) + 2 x Boy (yan kenarlar) = 2 x (En + Boy) her parça için
+      let topBottomEdge = 2 * (width + depth) * 2; // 2 parça
+
+      // Ön ve Arka parçalar: En x (Yükseklik - 2*kalınlık) (2 adet)
+      // Görünen kenarlar: 2 x En (üst ve alt) + 2 x (Yükseklik - 2*kalınlık) (yanlar)
+      let frontBackHeight = height - 2 * thickness;
+      let frontBackEdge = 2 * (width + frontBackHeight) * 2; // 2 parça
+
+      // Sol ve Sağ parçalar: (Boy - 2*kalınlık) x (Yükseklik - 2*kalınlık) (2 adet)
+      // Görünen kenarlar: 2 x (Boy - 2*kalınlık) (üst ve alt) + 1 x (Yükseklik - 2*kalınlık) (ön kenar)
+      let sideWidth = depth - 2 * thickness;
+      let sideHeight = height - 2 * thickness;
+      let sideEdge = (2 * sideWidth + sideHeight) * 2; // 2 parça, ön kenar görünür
+
+      let totalEdgeMm = topBottomEdge + frontBackEdge + sideEdge;
+      let totalEdgeM = (totalEdgeMm / 1000).toFixed(2);
+
+      document.getElementById('edge-band-length').textContent = `≈ ${totalEdgeM} metre (${totalEdgeMm.toLocaleString()} mm)`;
+    }
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', updateEdgeBandInfo);
+
     function addBoxParts() {
       let thickness = parseInt(document.getElementById('stock-thickness').value);
       let width = parseInt(document.getElementById('box-width').value);
@@ -424,20 +470,36 @@
 
       // Kutu parçalarını hesapla
       // Üst ve Alt: En x Boy
-      let topBottom = { width: width, height: depth, quantity: 2 };
+      addOrIncrementPart(width, depth, 2);
 
       // Ön ve Arka: En x (Yükseklik - 2*kalınlık)
-      let frontBack = { width: width, height: height - 2 * thickness, quantity: 2 };
+      addOrIncrementPart(width, height - 2 * thickness, 2);
 
       // Sol ve Sağ: (Boy - 2*kalınlık) x (Yükseklik - 2*kalınlık)
-      let leftRight = { width: depth - 2 * thickness, height: height - 2 * thickness, quantity: 2 };
-
-      // Parçaları ekle
-      parts.push({ id: nextId++, ...topBottom });
-      parts.push({ id: nextId++, ...frontBack });
-      parts.push({ id: nextId++, ...leftRight });
+      addOrIncrementPart(depth - 2 * thickness, height - 2 * thickness, 2);
 
       updatePartsList();
+    }
+
+    function addOrIncrementPart(width, height, quantity) {
+      // Normalize dimensions to check for duplicates (400x300 === 300x400)
+      let normalizedWidth = Math.max(width, height);
+      let normalizedHeight = Math.min(width, height);
+
+      // Find existing part with same normalized dimensions
+      let existingPart = parts.find(p => {
+        let pNormWidth = Math.max(p.width, p.height);
+        let pNormHeight = Math.min(p.width, p.height);
+        return pNormWidth === normalizedWidth && pNormHeight === normalizedHeight;
+      });
+
+      if (existingPart) {
+        // Increment quantity of existing part
+        existingPart.quantity += quantity;
+      } else {
+        // Add new part
+        parts.push({ id: nextId++, width, height, quantity });
+      }
     }
 
     function addPart() {
@@ -446,7 +508,7 @@
       let quantity = parseInt(document.getElementById('part-quantity').value);
 
       if (width > 0 && height > 0 && quantity > 0) {
-        parts.push({ id: nextId++, width, height, quantity });
+        addOrIncrementPart(width, height, quantity);
         document.getElementById('part-quantity').value = 1;
         updatePartsList();
       }
@@ -460,6 +522,7 @@
     function updatePartsList() {
       let list = document.getElementById('parts-list');
       let rows = document.getElementById('parts-rows');
+      let totalDiv = document.getElementById('parts-total');
       let calcBtn = document.getElementById('calc-btn');
 
       if (parts.length === 0) {
@@ -478,6 +541,11 @@
             </div>
           </li>
         `).join('');
+
+        // Calculate and display total parts count
+        let totalParts = parts.reduce((sum, part) => sum + part.quantity, 0);
+        let uniqueParts = parts.length;
+        totalDiv.textContent = `Toplam: ${uniqueParts} farklı parça, ${totalParts} adet`;
       }
     }
 
