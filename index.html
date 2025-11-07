@@ -172,7 +172,7 @@
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 12px;
     }
 
@@ -419,10 +419,6 @@
               <div class="stat-label">Yerleştirilen Parçalar</div>
               <div class="stat-value" id="stat-placed">0</div>
             </div>
-            <div class="stat-box">
-              <div class="stat-label">Yerleştirilemeyen Parçalar</div>
-              <div class="stat-value" id="stat-unplaced">0</div>
-            </div>
           </div>
         </div>
 
@@ -554,7 +550,6 @@
       document.getElementById('stat-efficiency').textContent = totalEfficiency.toFixed(1) + '%';
       document.getElementById('stat-waste').textContent = totalWaste.toLocaleString() + ' mm²';
       document.getElementById('stat-placed').textContent = totalPlaced;
-      document.getElementById('stat-unplaced').textContent = results.unplacedParts.length;
 
       // Draw all sheets
       let sheetsContainer = document.getElementById('sheets-container');
