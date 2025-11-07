@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2D Cutting Optimizer</title>
-  <meta name="description" content="2D cutting stock optimization algorithm" />
+  <title>2B Kesim Optimizasyonu</title>
+  <meta name="description" content="Levha, panel ve benzeri malzemelerin en verimli şekilde kesilmesi için geliştirilmiş 2 boyutlu kesim optimizasyon aracı. Fire oranını minimize eder ve malzeme tasarrufu sağlar." />
   <style>
     * {
       margin: 0;
@@ -230,56 +230,56 @@
 
 <body>
   <header>
-    <h1>2D Cutting Planner</h1>
+    <h1>2B Kesim Planlayıcı</h1>
   </header>
 
   <div class="grid">
     <div>
       <div class="section">
-        <h2>Stock Material</h2>
+        <h2>Kesilecek Malzeme</h2>
         <div class="form-grid">
           <div class="form-group">
-            <label for="stock-width">Width (mm)</label>
-            <input type="number" id="stock-width" value="2400" min="1">
+            <label for="stock-width">Genişlik (mm)</label>
+            <input type="number" id="stock-width" value="2100" min="1">
           </div>
           <div class="form-group">
-            <label for="stock-height">Height (mm)</label>
-            <input type="number" id="stock-height" value="1200" min="1">
+            <label for="stock-height">Yükseklik (mm)</label>
+            <input type="number" id="stock-height" value="2800" min="1">
           </div>
           <div class="form-group">
-            <label for="stock-margin">Margin (mm)</label>
+            <label for="stock-margin">Boşluk (mm)</label>
             <input type="number" id="stock-margin" value="3" min="0">
           </div>
         </div>
       </div>
 
       <div class="section">
-        <h2>Parts</h2>
+        <h2>Parçalar</h2>
         <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr 80px;">
           <div class="form-group">
-            <label for="part-width">Width</label>
+            <label for="part-width">Genişlik</label>
             <input type="number" id="part-width" value="400" min="1">
           </div>
           <div class="form-group">
-            <label for="part-height">Height</label>
+            <label for="part-height">Yükseklik</label>
             <input type="number" id="part-height" value="300" min="1">
           </div>
           <div class="form-group">
-            <label for="part-quantity">Qty</label>
+            <label for="part-quantity">Adet</label>
             <input type="number" id="part-quantity" value="1" min="1">
           </div>
           <div class="form-group">
-            <label style="opacity: 0;">Add</label>
-            <button onclick="addPart()">Add</button>
+            <label style="opacity: 0;">Ekle</label>
+            <button onclick="addPart()">Ekle</button>
           </div>
         </div>
 
         <div id="parts-list" class="parts-table" style="display: none;">
           <div class="parts-header">
-            <div>Width</div>
-            <div>Height</div>
-            <div>Qty</div>
-            <div>Area</div>
+            <div>Genişlik</div>
+            <div>Yükseklik</div>
+            <div>Adet</div>
+            <div>Alan</div>
             <div></div>
           </div>
           <ul id="parts-rows"></ul>
@@ -287,8 +287,8 @@
       </div>
 
       <div class="button-group">
-        <button onclick="calculate()" id="calc-btn" disabled style="flex: 1;">Calculate Layout</button>
-        <button onclick="reset()" class="secondary">Reset</button>
+        <button onclick="calculate()" id="calc-btn" disabled style="flex: 1;">Yerleşimi Hesapla</button>
+        <button onclick="reset()" class="secondary">Sıfırla</button>
       </div>
     </div>
 
@@ -296,29 +296,29 @@
     <div>
       <div id="results" style="display: none;">
         <div class="section">
-          <h2>Statistics</h2>
+          <h2>İstatistikler</h2>
           <div class="stats-grid">
             <div class="stat-box">
-              <div class="stat-label">Efficiency</div>
+              <div class="stat-label">Verimlilik</div>
               <div class="stat-value" id="stat-efficiency">0%</div>
             </div>
             <div class="stat-box">
-              <div class="stat-label">Waste Area</div>
+              <div class="stat-label">Fire Alanı</div>
               <div class="stat-value" id="stat-waste">0 mm²</div>
             </div>
             <div class="stat-box">
-              <div class="stat-label">Parts Placed</div>
+              <div class="stat-label">Yerleştirilen Parçalar</div>
               <div class="stat-value" id="stat-placed">0</div>
             </div>
             <div class="stat-box">
-              <div class="stat-label">Parts Unplaced</div>
+              <div class="stat-label">Yerleştirilemeyen Parçalar</div>
               <div class="stat-value" id="stat-unplaced">0</div>
             </div>
           </div>
         </div>
 
         <div class="section">
-          <h2>Cutting Layout</h2>
+          <h2>Kesim Yerleşimi</h2>
           <div class="canvas-container">
             <canvas id="canvas"></canvas>
           </div>          
@@ -326,7 +326,7 @@
       </div>
 
       <div id="placeholder" class="placeholder">
-        Add parts and click Calculate Layout to see results
+        Parça ekleyin ve sonuçları görmek için Yerleşimi Hesapla'ya tıklayın
       </div>
     </div>
   </div>
