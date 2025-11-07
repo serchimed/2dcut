@@ -172,25 +172,25 @@
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
     }
 
     .stat-box {
       background: #2a2a2a;
-      padding: 16px;
+      padding: 12px;
       border-radius: 4px;
     }
 
     .stat-label {
-      font-size: 11px;
+      font-size: 10px;
       color: #888;
       text-transform: uppercase;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
 
     .stat-value {
-      font-size: 24px;
+      font-size: 18px;
       font-weight: bold;
       color: #fff;
     }
@@ -426,12 +426,7 @@
           </div>
         </div>
 
-        <div class="section">
-          <h2>Kesim Yerleşimi</h2>
-          <div class="canvas-container">
-            <canvas id="canvas"></canvas>
-          </div>          
-        </div>
+        <div id="sheets-container"></div>
       </div>
 
       <div id="placeholder" class="placeholder">
@@ -529,12 +524,12 @@
       let stockHeight = parseInt(document.getElementById('stock-height').value);
       let margin = parseInt(document.getElementById('stock-margin').value);
 
-      let result = optimizeCutting(
+      let results = optimizeCuttingMultiSheet(
         { width: stockWidth, height: stockHeight, margin },
         parts
       );
 
-      displayResults(result, { width: stockWidth, height: stockHeight });
+      displayResults(results, { width: stockWidth, height: stockHeight });
     }
 
     function reset() {
@@ -544,20 +539,50 @@
       document.getElementById('placeholder').style.display = 'block';
     }
 
-    function displayResults(result, stock) {
+    function displayResults(results, stock) {
       document.getElementById('results').style.display = 'block';
       document.getElementById('placeholder').style.display = 'none';
 
-      document.getElementById('stat-efficiency').textContent = result.efficiency.toFixed(1) + '%';
-      document.getElementById('stat-waste').textContent = result.wasteArea.toLocaleString() + ' mm²';
-      document.getElementById('stat-placed').textContent = result.placedParts.length;
-      document.getElementById('stat-unplaced').textContent = result.unplacedParts.length;
+      // Calculate total statistics
+      let totalPlaced = results.sheets.reduce((sum, sheet) => sum + sheet.placedParts.length, 0);
+      let totalUsedArea = results.sheets.reduce((sum, sheet) =>
+        sum + sheet.placedParts.reduce((s, p) => s + p.width * p.height, 0), 0);
+      let totalStockArea = results.sheets.length * stock.width * stock.height;
+      let totalEfficiency = (totalUsedArea / totalStockArea) * 100;
+      let totalWaste = totalStockArea - totalUsedArea;
 
-      drawLayout(result, stock);
+      document.getElementById('stat-efficiency').textContent = totalEfficiency.toFixed(1) + '%';
+      document.getElementById('stat-waste').textContent = totalWaste.toLocaleString() + ' mm²';
+      document.getElementById('stat-placed').textContent = totalPlaced;
+      document.getElementById('stat-unplaced').textContent = results.unplacedParts.length;
+
+      // Draw all sheets
+      let sheetsContainer = document.getElementById('sheets-container');
+      sheetsContainer.innerHTML = '';
+
+      results.sheets.forEach((sheet, index) => {
+        let section = document.createElement('div');
+        section.className = 'section';
+
+        let title = document.createElement('h2');
+        title.textContent = `Plaka ${index + 1} - Verimlilik: ${sheet.efficiency.toFixed(1)}%`;
+        section.appendChild(title);
+
+        let canvasContainer = document.createElement('div');
+        canvasContainer.className = 'canvas-container';
+
+        let canvas = document.createElement('canvas');
+        canvas.id = `canvas-${index}`;
+        canvasContainer.appendChild(canvas);
+
+        section.appendChild(canvasContainer);
+        sheetsContainer.appendChild(section);
+
+        drawLayout(sheet, stock, canvas);
+      });
     }
 
-    function drawLayout(result, stock) {
-      let canvas = document.getElementById('canvas');
+    function drawLayout(result, stock, canvas) {
       let ctx = canvas.getContext('2d');
 
       let maxWidth = 600;
@@ -608,6 +633,29 @@
           ctx.fillText(text, x + width / 2, y + height / 2);
         }
       });
+    }
+
+    function optimizeCuttingMultiSheet(stock, parts) {
+      let sheets = [];
+      let remainingParts = [...parts];
+      let maxSheets = 10; // Maximum number of sheets to prevent infinite loop
+
+      while (remainingParts.length > 0 && sheets.length < maxSheets) {
+        let result = optimizeCutting(stock, remainingParts);
+
+        if (result.placedParts.length === 0) {
+          // No parts could be placed, stop to avoid infinite loop
+          break;
+        }
+
+        sheets.push(result);
+        remainingParts = result.unplacedParts;
+      }
+
+      return {
+        sheets: sheets,
+        unplacedParts: remainingParts
+      };
     }
 
     function optimizeCutting(stock, parts) {
