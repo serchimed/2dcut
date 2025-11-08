@@ -328,8 +328,14 @@
           </div>
         </div>
         <div id="edge-band-info" style="margin-top: 12px; padding: 12px; background: #1a1a1a; border-radius: 4px; font-size: 13px; color: #888; border-left: 3px solid #666;">
-          <div style="color: #aaa; margin-bottom: 4px;">📏 Kenarbant İhtiyacı (Görünen Yüzeyler)</div>
-          <div id="edge-band-length" style="color: #fff; font-size: 15px; font-weight: bold;">-</div>
+          <div style="margin-bottom: 8px;">
+            <div style="color: #aaa; margin-bottom: 4px;">📏 Görünen Kenar Bant</div>
+            <div id="edge-band-length" style="color: #fff; font-size: 15px; font-weight: bold;">-</div>
+          </div>
+          <div>
+            <div style="color: #aaa; margin-bottom: 4px;">📐 Tüm Kenarlar Bant</div>
+            <div id="total-edge-band-length" style="color: #fff; font-size: 15px; font-weight: bold;">-</div>
+          </div>
         </div>
       </div>
 
@@ -414,11 +420,13 @@
 
       if (width <= 0 || depth <= 0 || height <= 0 || thickness <= 0) {
         document.getElementById('edge-band-length').textContent = '-';
+        document.getElementById('total-edge-band-length').textContent = '-';
         return;
       }
 
       if (height <= 2 * thickness || depth <= 2 * thickness) {
         document.getElementById('edge-band-length').textContent = 'Geçersiz boyutlar';
+        document.getElementById('total-edge-band-length').textContent = 'Geçersiz boyutlar';
         return;
       }
 
@@ -442,6 +450,21 @@
       let totalEdgeM = (totalEdgeMm / 1000).toFixed(2);
 
       document.getElementById('edge-band-length').textContent = `≈ ${totalEdgeM} metre (${totalEdgeMm.toLocaleString()} mm)`;
+
+      // Tüm kenarları hesapla (her parça için çevre uzunluğu)
+      // Üst ve Alt: 2 x (En + Boy) x 2 parça
+      let topBottomTotal = 2 * (width + depth) * 2;
+
+      // Ön ve Arka: 2 x (En + Yükseklik - 2*kalınlık) x 2 parça
+      let frontBackTotal = 2 * (width + frontBackHeight) * 2;
+
+      // Sol ve Sağ: 2 x (Boy - 2*kalınlık + Yükseklik - 2*kalınlık) x 2 parça
+      let sideTotal = 2 * (sideWidth + sideHeight) * 2;
+
+      let allEdgesMm = topBottomTotal + frontBackTotal + sideTotal;
+      let allEdgesM = (allEdgesMm / 1000).toFixed(2);
+
+      document.getElementById('total-edge-band-length').textContent = `≈ ${allEdgesM} metre (${allEdgesMm.toLocaleString()} mm)`;
     }
 
     // Initialize on page load
